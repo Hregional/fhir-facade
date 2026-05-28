@@ -22,52 +22,33 @@ public class config {
       }
 
    public static class Api {
-      private static final boolean DEVELOPMENT_MODE = true; // Cambiar a false en producción
-
       protected final HttpClient httpClient;
-      protected final String apiKey;
       protected final String baseUrl;
+      protected final TokenManager tokenManager;
 
       public Api() throws Exception {
-         this.apiKey = get("API_KEY");
          this.baseUrl = get("API_URL");
+         this.tokenManager = new TokenManager();
 
-         // Configurar SSL Context para mTLS de forma opcional
-         String p12Path = get("P12_PATH");
-         String p12Password = get("P12_PASSWORD");
+         this.httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .build();
 
-         SSLContext sslContext = null;
-         if (p12Path != null && !p12Path.trim().isEmpty()) {
-            try {
-               KeyStore keyStore = loadP12Certificate(p12Path, p12Password);
-               sslContext = createSSLContext(keyStore, p12Password);
-            } catch (Exception e) {
-               System.err.println("⚠️ No se pudo cargar el certificado, continuando sin mTLS: " + e.getMessage());
-            }
-         }
-
-         HttpClient.Builder builder = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(30));
-         
-         if (sslContext != null) {
-            builder.sslContext(sslContext);
-         }
-
-         this.httpClient = builder.build();
-
-         System.out.println("✅ Cliente API inicializado (mTLS " + (sslContext != null ? "activado" : "desactivado") + ")");
+         System.out.println("✅ Cliente API inicializado (Base URL: " + baseUrl + ")");
       }
 
       /**
-       * Construye una petición HTTP GET estándar
+       * Construye una petición HTTP GET con Bearer Token
        */
-      protected HttpRequest buildGetRequest(String url) {
+      protected HttpRequest buildGetRequest(String url) throws Exception {
+         String token = tokenManager.getAccessToken();
+         
          return HttpRequest.newBuilder()
             .uri(URI.create(url))
             .header("Accept", "application/json")
             .header("Content-Type", "application/json")
-            .header("x-api-key", apiKey)
-            .header("User-Agent", "MSPAS-FHIR-Facade/1.0")
+            .header("Authorization", "Bearer " + token)
+            .header("User-Agent", "HRO-FHIR-Facade/1.0")
             .timeout(Duration.ofSeconds(60))
             .GET()
             .build();
@@ -91,70 +72,6 @@ public class config {
        */
       protected String buildUrl(String endpoint, String queryParams) {
          return baseUrl + endpoint + (queryParams != null && !queryParams.isEmpty() ? "?" + queryParams : "");
-      }
-
-      // Métodos privados de configuración
-
-      private String getRequiredConfig(String key) {
-         String value = get(key);
-         if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException("Variable de entorno requerida no encontrada: " + key);
-         }
-         return value.trim();
-      }
-
-      private KeyStore loadP12Certificate(String p12Path, String p12Password)
-         throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-
-         System.out.println("🔐 Cargando certificado: " + p12Path);
-
-         KeyStore keyStore = KeyStore.getInstance("PKCS12");
-         try (FileInputStream fis = new FileInputStream(p12Path)) {
-            keyStore.load(fis, p12Password.toCharArray());
-         }
-
-         System.out.println("✅ Certificado cargado exitosamente");
-         return keyStore;
-      }
-
-      private SSLContext createSSLContext(KeyStore keyStore, String password)
-         throws NoSuchAlgorithmException, KeyStoreException, UnrecoverableKeyException, KeyManagementException {
-
-         // 🔑 Configurar KeyManager (certificado cliente para mTLS)
-         KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-         kmf.init(keyStore, password.toCharArray());
-
-         TrustManager[] trustManagers;
-
-         if (DEVELOPMENT_MODE) {
-            // ⚠️ MODO DESARROLLO: Aceptar todos los certificados
-            trustManagers = new TrustManager[] {
-               new X509TrustManager() {
-                  public X509Certificate[] getAcceptedIssuers() {
-                     return null;
-                  }
-
-                  public void checkClientTrusted(X509Certificate[] certs, String authType) {
-                     // No validar certificados del cliente
-                  }
-
-                  public void checkServerTrusted(X509Certificate[] certs, String authType) {
-                     System.out.println("🔓 Certificado del servidor aceptado (modo desarrollo)");
-                  }
-               }
-            };
-         } else {
-            // Modo producción: validar certificados normalmente
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init((KeyStore) null); // usar certificados del sistema
-            trustManagers = tmf.getTrustManagers();
-         }
-
-         SSLContext sslContext = SSLContext.getInstance("TLS");
-         sslContext.init(kmf.getKeyManagers(), trustManagers, new SecureRandom());
-
-         System.out.println("🔒 SSL Context configurado para mTLS");
-         return sslContext;
       }
    }
 }
