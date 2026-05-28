@@ -29,22 +29,33 @@ public class config {
       protected final String baseUrl;
 
       public Api() throws Exception {
-         this.apiKey = getRequiredConfig("API_KEY");
-         this.baseUrl = getRequiredConfig("API_URL");
+         this.apiKey = get("API_KEY");
+         this.baseUrl = get("API_URL");
 
-         // Configurar SSL Context para mTLS
-         String p12Path = getRequiredConfig("P12_PATH");
-         String p12Password = getRequiredConfig("P12_PASSWORD");
+         // Configurar SSL Context para mTLS de forma opcional
+         String p12Path = get("P12_PATH");
+         String p12Password = get("P12_PASSWORD");
 
-         KeyStore keyStore = loadP12Certificate(p12Path, p12Password);
-         SSLContext sslContext = createSSLContext(keyStore, p12Password);
+         SSLContext sslContext = null;
+         if (p12Path != null && !p12Path.trim().isEmpty()) {
+            try {
+               KeyStore keyStore = loadP12Certificate(p12Path, p12Password);
+               sslContext = createSSLContext(keyStore, p12Password);
+            } catch (Exception e) {
+               System.err.println("⚠️ No se pudo cargar el certificado, continuando sin mTLS: " + e.getMessage());
+            }
+         }
 
-         this.httpClient = HttpClient.newBuilder()
-            .sslContext(sslContext)
-            .connectTimeout(Duration.ofSeconds(30))
-            .build();
+         HttpClient.Builder builder = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30));
+         
+         if (sslContext != null) {
+            builder.sslContext(sslContext);
+         }
 
-         System.out.println("✅ Cliente API inicializado correctamente");
+         this.httpClient = builder.build();
+
+         System.out.println("✅ Cliente API inicializado (mTLS " + (sslContext != null ? "activado" : "desactivado") + ")");
       }
 
       /**
