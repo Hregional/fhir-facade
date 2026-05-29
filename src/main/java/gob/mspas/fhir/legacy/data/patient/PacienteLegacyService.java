@@ -69,6 +69,12 @@ public class PacienteLegacyService extends config.Api {
             throw new RuntimeException("Error en API Legacy: " + response.statusCode() + " - " + response.body());
         }
 
-        return objectMapper.readValue(response.body(), new TypeReference<List<PacienteLegacyDTO>>() {});
+        String body = response.body().trim();
+        if (body.startsWith("{")) {
+            PacienteLegacyDTO dto = objectMapper.readValue(body, PacienteLegacyDTO.class);
+            return Collections.singletonList(dto);
+        } else {
+            return objectMapper.readValue(body, new TypeReference<List<PacienteLegacyDTO>>() {});
+        }
     }
 }

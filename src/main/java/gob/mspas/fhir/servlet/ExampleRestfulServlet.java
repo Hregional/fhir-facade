@@ -37,8 +37,7 @@ public class ExampleRestfulServlet extends RestfulServer {
 	public void initialize() {
       System.setProperty("jdk.tls.maxHandshakeMessageSize", "50000");
 		/*
-		 * Two resource providers are defined. Each one handles a specific
-		 * type of resource.
+		 * One resource provider is defined. It handles Patient resources.
 		 */
 		List<IResourceProvider> providers = new ArrayList<>();
 		providers.add(new PatientResourceProvider());
@@ -57,6 +56,7 @@ public class ExampleRestfulServlet extends RestfulServer {
 		 * Use nice coloured HTML when a browser is used to request the content
 		 */
 		registerInterceptor(new ResponseHighlighterInterceptor());
+		registerInterceptor(new gob.mspas.fhir.interceptor.NewLoggingInterceptor());
 
 		// Define your CORS configuration. This is an example
 		// showing a typical setup. You should customize this

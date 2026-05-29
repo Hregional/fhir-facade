@@ -172,11 +172,17 @@ public class PatientResourceProvider implements IResourceProvider {
       }
 
       // Fecha de Nacimiento
-      if (dto.getFechaNacimiento() != null) {
+      if (dto.getFechaNacimiento() != null && !dto.getFechaNacimiento().isEmpty()) {
          try {
-            // La API devuelve ISO 8601: 2026-05-28T20:18:51.543Z
-            OffsetDateTime odt = OffsetDateTime.parse(dto.getFechaNacimiento());
-            patient.setBirthDate(java.sql.Date.valueOf(odt.toLocalDate()));
+            // Intentar parsear como OffsetDateTime primero (ISO 8601 completo)
+            try {
+               OffsetDateTime odt = OffsetDateTime.parse(dto.getFechaNacimiento());
+               patient.setBirthDate(java.sql.Date.valueOf(odt.toLocalDate()));
+            } catch (Exception e) {
+               // Si falla, intentar parsear solo la fecha (YYYY-MM-DD)
+               String fechaSolo = dto.getFechaNacimiento().split("T")[0];
+               patient.setBirthDate(java.sql.Date.valueOf(fechaSolo));
+            }
          } catch (Exception e) {
             logger.warn("No se pudo parsear fecha de nacimiento: {}", dto.getFechaNacimiento());
          }

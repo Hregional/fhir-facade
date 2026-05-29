@@ -28,13 +28,28 @@ public class TokenManager {
     private final ObjectMapper objectMapper;
 
     public TokenManager() {
-        this.clientId = config.get("CLIENT_ID");
-        this.clientSecret = config.get("CLIENT_SECRET");
-        this.username = config.get("USERNAME");
-        this.password = config.get("PASSWORD");
-        this.tokenUrl = config.get("ACCESS_TOKEN_URL");
+        this.clientId = config.get("CLIENT_ID") != null ? config.get("CLIENT_ID").trim() : null;
+        this.clientSecret = config.get("CLIENT_SECRET") != null ? config.get("CLIENT_SECRET").trim() : null;
+        this.username = config.get("USERNAME") != null ? config.get("USERNAME").trim() : null;
+        this.password = config.get("PASSWORD") != null ? config.get("PASSWORD").trim() : null;
+        this.tokenUrl = config.get("ACCESS_TOKEN_URL") != null ? config.get("ACCESS_TOKEN_URL").trim() : null;
         this.httpClient = HttpClient.newBuilder().build();
         this.objectMapper = new ObjectMapper();
+
+        // Validación de configuración
+        validarConfig("CLIENT_ID", clientId);
+        validarConfig("CLIENT_SECRET", clientSecret);
+        validarConfig("USERNAME", username);
+        validarConfig("PASSWORD", password);
+        validarConfig("ACCESS_TOKEN_URL", tokenUrl);
+    }
+
+    private void validarConfig(String key, String value) {
+        if (value == null || value.trim().isEmpty()) {
+            System.err.println("⚠️ ADVERTENCIA: La variable de entorno '" + key + "' no está definida o está vacía.");
+        } else {
+            System.out.println("✅ Configuración cargada: " + key + " (longitud: " + value.length() + ")");
+        }
     }
 
     public synchronized String getAccessToken() throws Exception {
@@ -49,18 +64,24 @@ public class TokenManager {
     private String refreshToken() throws Exception {
         System.out.println("🔑 Solicitando nuevo token de acceso a: " + tokenUrl);
 
-        String auth = clientId + ":" + clientSecret;
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+        // Algunos servidores prefieren las credenciales del cliente en el body en lugar de Basic Auth
+       /* String body = "grant_type=password" +
+                "&client_id=" + java.net.URLEncoder.encode(clientId, StandardCharsets.UTF_8) +
+                "&client_secret=" + java.net.URLEncoder.encode(clientSecret, StandardCharsets.UTF_8) +
+                "&username=" + java.net.URLEncoder.encode(username, StandardCharsets.UTF_8) +
+                "&password=" + java.net.URLEncoder.encode(password, StandardCharsets.UTF_8) +
+                "&scope=" + java.net.URLEncoder.encode("openid profile", StandardCharsets.UTF_8);
 
-        String body = "grant_type=password" +
-                "&username=" + username +
-                "&password=" + password +
-                "&scope=openid profile";
+        */
+         String body = "grant_type=client_credentials" +
+                       "&client_id=" + java.net.URLEncoder.encode(clientId, StandardCharsets.UTF_8) +
+                       "&client_secret=" + java.net.URLEncoder.encode(clientSecret, StandardCharsets.UTF_8) +
+                       "&scope=" + java.net.URLEncoder.encode("openid profile", StandardCharsets.UTF_8);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tokenUrl))
                 .header("Content-Type", "application/x-www-form-urlencoded")
-                .header("Authorization", "Basic " + encodedAuth)
+                .header("Accept", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
