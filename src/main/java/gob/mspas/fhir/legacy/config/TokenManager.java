@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 public class TokenManager {
     private static final String CACHE_KEY = "access_token";
     private static final Cache<String, String> cache = Caffeine.newBuilder()
-            .expireAfterWrite(50, TimeUnit.MINUTES) // El token suele durar 60 min
+            .expireAfterWrite(4, TimeUnit.MINUTES) // Ajustado a 4 min, la media de Keycloak es 5 min
             .build();
 
     private final String clientId;
@@ -59,6 +59,11 @@ public class TokenManager {
             cache.put(CACHE_KEY, token);
         }
         return token;
+    }
+
+    public void invalidateToken() {
+        System.out.println("🗑️ Invalidando token del cache por error de autenticación");
+        cache.invalidate(CACHE_KEY);
     }
 
     private String refreshToken() throws Exception {

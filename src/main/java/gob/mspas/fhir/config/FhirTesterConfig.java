@@ -35,7 +35,7 @@ public class FhirTesterConfig {
 			.addServer()
 				.withId("home")
 				.withFhirVersion(FhirVersionEnum.R4)
-				.withBaseUrl("http://localhost:8080/fhir/")
+				.withBaseUrl("http://localhost:8081/fhir/")
 				.withName("Local Tester");
 
 		/*

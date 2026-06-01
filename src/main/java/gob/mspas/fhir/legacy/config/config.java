@@ -64,6 +64,11 @@ public class config {
 
          System.out.println("📊 Código de estado: " + response.statusCode());
 
+         if (response.statusCode() == 401) {
+            System.out.println("⚠️ Token expirado o inválido. Invalidando caché.");
+            tokenManager.invalidateToken();
+         }
+
          return response;
       }
 

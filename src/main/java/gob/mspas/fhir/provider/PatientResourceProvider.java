@@ -103,10 +103,20 @@ public class PatientResourceProvider implements IResourceProvider {
          }
          // 3. Búsqueda por Nombre
          else if (family != null || given != null) {
-            String primerNombre = given != null ? given.getValue() : null;
-            String primerApellido = family != null ? family.getValue() : null;
-            
-            resultados = pacienteService.buscarPorNombre(primerNombre, null, primerApellido, null, null);
+            String givenName = given != null ? given.getValue() : "";
+            String familyName = family != null ? family.getValue() : "";
+
+            // Dividir los nombres si vienen varios (ej: "Juan Carlos")
+            String[] nombres = givenName.trim().split("\\s+");
+            String primerNombre = nombres.length > 0 ? nombres[0] : null;
+            String segundoNombre = nombres.length > 1 ? nombres[1] : null;
+
+            // Dividir los apellidos si vienen varios (ej: "Lopez Perez")
+            String[] apellidos = familyName.trim().split("\\s+");
+            String primerApellido = apellidos.length > 0 ? apellidos[0] : null;
+            String segundoApellido = apellidos.length > 1 ? apellidos[1] : null;
+
+            resultados = pacienteService.buscarPorNombre(primerNombre, segundoNombre, primerApellido, segundoApellido, null);
          } else {
             throw new InvalidRequestException("Debe proporcionar al menos un parámetro de búsqueda (identifier, birthdate, family o given)");
          }
