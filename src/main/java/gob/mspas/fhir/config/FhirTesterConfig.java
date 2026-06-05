@@ -43,7 +43,7 @@ public class FhirTesterConfig {
 					// Ajustado a la URL de Docker por defecto o localhost:8080
 					.withBaseUrl(gob.mspas.fhir.legacy.config.config.get("FHIR_BASE_URL") != null ? 
 								 gob.mspas.fhir.legacy.config.config.get("FHIR_BASE_URL") : 
-								 "http://localhost:8080/")
+								 "http://localhost:8080/fhir")
 					.withName("HRO FHIR Facade");
 		}
 		
