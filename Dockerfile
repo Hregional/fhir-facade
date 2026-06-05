@@ -15,6 +15,9 @@ FROM tomcat:10.1-jdk17-temurin
 
 WORKDIR /usr/local/tomcat/webapps/
 
+# Configurar Tomcat para permitir caracteres especiales en la URL (como el pipe | de FHIR)
+RUN sed -i 's/<Connector port="8080" protocol="HTTP\/1.1"/<Connector port="8080" protocol="HTTP\/1.1" relaxedQueryChars="|{}[ ]" /g' /usr/local/tomcat/conf/server.xml
+
 # Eliminar las aplicaciones por defecto de Tomcat para evitar conflictos
 RUN rm -rf ./ROOT ./examples ./docs ./manager ./host-manager
 
