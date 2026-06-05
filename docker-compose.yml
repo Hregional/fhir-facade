@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  fhir-server:
+    build: .
+    container_name: hapi-fhir-facade
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    # Esto permite que el contenedor se comunique con servicios en el localhost de tu máquina
+    # usando la URL: http://host.docker.internal:PUERTO
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always

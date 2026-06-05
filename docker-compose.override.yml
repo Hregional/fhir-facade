@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  fhir-server:
+    # En desarrollo, montamos el pom y src para facilitar pruebas
+    # Aunque Java requiere compilación, esto ayuda a ver cambios si usas herramientas de hot-reload
+    volumes:
+      - .:/app
+    # Podrías cambiar el comando para que use jetty:run en lugar de Tomcat si prefieres
+    # pero para mantener consistencia con Dockerfile dejamos el default.
+    environment:
+      - SHOW_UI=true
+      - JAVA_OPTS=-Xms512m -Xmx1024m

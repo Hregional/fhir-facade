@@ -31,18 +31,21 @@ public class FhirTesterConfig {
 	@Bean
 	public TesterConfig testerConfig() {
 		TesterConfig retVal = new TesterConfig();
-		retVal
-			.addServer()
-				.withId("home")
-				.withFhirVersion(FhirVersionEnum.R4)
-				.withBaseUrl("http://localhost:8081/fhir/")
-				.withName("Local Tester");
 
-		/*
-		 * Use the method below to supply a client "factory" which can be used 
-		 * if your server requires authentication
-		 */
-		// retVal.setClientFactory(clientFactory);
+		// Leer variable de entorno para decidir si mostrar la UI
+		String showUi = gob.mspas.fhir.legacy.config.config.get("SHOW_UI");
+		
+		if ("true".equalsIgnoreCase(showUi)) {
+			retVal
+				.addServer()
+					.withId("home")
+					.withFhirVersion(FhirVersionEnum.R4)
+					// Ajustado a la URL de Docker por defecto o localhost:8080
+					.withBaseUrl(gob.mspas.fhir.legacy.config.config.get("FHIR_BASE_URL") != null ? 
+								 gob.mspas.fhir.legacy.config.config.get("FHIR_BASE_URL") : 
+								 "http://localhost:8080/")
+					.withName("HRO FHIR Facade");
+		}
 		
 		return retVal;
 	}
