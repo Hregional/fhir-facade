@@ -1,0 +1,39 @@
+# Guia de implementacion FHIR de la fachada HRO (hapi-fhirs-hro)
+# Build: sushi .   ->   _updatePublisher.bat   ->   _genonce.bat
+id: gt.gob.hro.fhir
+canonical: http://hro.gob.gt/fhir
+name: HROFhirIG
+title: "Guía de implementación FHIR - HRO"
+description: "Uso de la API FHIR del HRO (consulta de pacientes) publicada a través de OpenHIM."
+status: draft
+version: 0.1.0
+fhirVersion: 4.0.1
+copyrightYear: 2026+
+releaseLabel: ci-build
+language: es
+license: CC0-1.0
+jurisdiction: urn:iso:std:iso:3166#GT "Guatemala"
+publisher:
+  name: HRO
+  url: https://hro.gob.gt
+
+parameters:
+  show-inherited-invariants: false
+
+pages:
+  index.md:
+    title: Inicio
+  autenticacion.md:
+    title: Acceso y autenticación
+  busquedas.md:
+    title: Consultas de pacientes
+  errores.md:
+    title: Respuestas y errores
+
+menu:
+  Inicio: index.html
+  Uso de la API:
+    Acceso y autenticación: autenticacion.html
+    Consultas de pacientes: busquedas.html
+    Respuestas y errores: errores.html
+  Artefactos: artifacts.html

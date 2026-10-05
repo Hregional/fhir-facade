@@ -1,5 +1,6 @@
 package gob.mspas.fhir.provider;
 
+import ca.uhn.fhir.model.api.annotation.Description;
 import ca.uhn.fhir.rest.annotation.*;
 import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.StringParam;
@@ -76,9 +77,13 @@ public class PatientResourceProvider implements IResourceProvider {
     */
    @Search()
    public List<Patient> searchPatients(
+      @Description(shortDefinition = "CUI (13 digitos, system http://renap.gob.gt/cui) o No. de historia clinica. Tiene prioridad sobre los demas parametros")
       @OptionalParam(name = Patient.SP_IDENTIFIER) TokenParam identifier,
+      @Description(shortDefinition = "Fecha de nacimiento YYYY-MM-DD. Se usa si no se envia identifier")
       @OptionalParam(name = Patient.SP_BIRTHDATE) DateParam birthdate,
+      @Description(shortDefinition = "Apellidos separados por espacio (primer y segundo apellido). Se usa si no se envia identifier ni birthdate")
       @OptionalParam(name = Patient.SP_FAMILY) StringParam family,
+      @Description(shortDefinition = "Nombres separados por espacio (primer y segundo nombre). Se combina con family")
       @OptionalParam(name = Patient.SP_GIVEN) StringParam given) {
 
       try {
@@ -159,7 +164,7 @@ public class PatientResourceProvider implements IResourceProvider {
             .setType(new CodeableConcept().addCoding(new Coding()
                .setSystem("http://terminology.hl7.org/CodeSystem/v2-0203")
                .setCode("NI")
-               .setDisplay("National identifier")));
+               .setDisplay("National unique individual identifier")));
       }
 
       // Nombre

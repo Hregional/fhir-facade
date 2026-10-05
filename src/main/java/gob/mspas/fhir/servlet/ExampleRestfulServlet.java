@@ -8,7 +8,9 @@ import gob.mspas.fhir.provider.PatientResourceProvider;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.narrative.DefaultThymeleafNarrativeGenerator;
 import ca.uhn.fhir.narrative.INarrativeGenerator;
+import ca.uhn.fhir.rest.openapi.OpenApiInterceptor;
 import ca.uhn.fhir.rest.server.IResourceProvider;
+import ca.uhn.fhir.rest.server.HardcodedServerAddressStrategy;
 import ca.uhn.fhir.rest.server.RestfulServer;
 import ca.uhn.fhir.rest.server.interceptor.CorsInterceptor;
 import ca.uhn.fhir.rest.server.interceptor.ResponseHighlighterInterceptor;
@@ -43,7 +45,16 @@ public class ExampleRestfulServlet extends RestfulServer {
 		providers.add(new PatientResourceProvider());
 		providers.add(new OrganizationResourceProvider());
 		setResourceProviders(providers);
-		
+
+		/*
+		 * Detras de OpenHIM el Host recibido es el interno (192.168.1.18:8082),
+		 * asi que se fija la URL publica para fullUrl, link y Location.
+		 */
+		String serverAddress = gob.mspas.fhir.legacy.config.config.get("FHIR_SERVER_ADDRESS");
+		if (serverAddress != null && !serverAddress.isBlank()) {
+			setServerAddressStrategy(new HardcodedServerAddressStrategy(serverAddress));
+		}
+
 		/*
 		 * Use a narrative generator. This is a completely optional step, 
 		 * but can be useful as it causes HAPI to generate narratives for
@@ -57,6 +68,11 @@ public class ExampleRestfulServlet extends RestfulServer {
 		 */
 		registerInterceptor(new ResponseHighlighterInterceptor());
 		registerInterceptor(new gob.mspas.fhir.interceptor.NewLoggingInterceptor());
+
+		/*
+		 * Documentacion OpenAPI: Swagger UI en /fhir/swagger-ui/ y spec en /fhir/api-docs
+		 */
+		registerInterceptor(new OpenApiInterceptor());
 
 		// Define your CORS configuration. This is an example
 		// showing a typical setup. You should customize this

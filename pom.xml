@@ -36,6 +36,12 @@
          <artifactId>hapi-fhir-server</artifactId>
          <version>${hapifhir_version}</version>
       </dependency>
+      <!-- Swagger UI / OpenAPI en /fhir/swagger-ui/ y /fhir/api-docs -->
+      <dependency>
+         <groupId>ca.uhn.hapi.fhir</groupId>
+         <artifactId>hapi-fhir-server-openapi</artifactId>
+         <version>${hapifhir_version}</version>
+      </dependency>
       <dependency>
          <groupId>ca.uhn.hapi.fhir</groupId>
          <artifactId>hapi-fhir-validation</artifactId>
