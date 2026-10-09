@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   fhir-server:
     # En desarrollo, montamos el pom y src para facilitar pruebas
@@ -8,6 +6,6 @@ services:
       - .:/app
     # Podrías cambiar el comando para que use jetty:run en lugar de Tomcat si prefieres
     # pero para mantener consistencia con Dockerfile dejamos el default.
+    # La memoria (MEM_LIMIT / JAVA_OPTS) se configura en .env
     environment:
       - SHOW_UI=true
-      - JAVA_OPTS=-Xms512m -Xmx1024m
