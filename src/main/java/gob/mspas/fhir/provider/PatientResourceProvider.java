@@ -18,8 +18,10 @@ import org.hl7.fhir.r4.model.Enumerations.AdministrativeGender;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,6 +32,10 @@ public class PatientResourceProvider implements IResourceProvider {
 
    private static final Logger logger = LoggerFactory.getLogger(PatientResourceProvider.class);
    private final PacienteLegacyService pacienteService;
+   private static final List<DateTimeFormatter> FORMATOS_FECHA = List.of(
+      DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+      DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+      DateTimeFormatter.ISO_LOCAL_DATE);
 
    public PatientResourceProvider() {
       try {
@@ -187,20 +193,11 @@ public class PatientResourceProvider implements IResourceProvider {
       }
 
       // Fecha de Nacimiento
-      if (dto.getFechaNacimiento() != null && !dto.getFechaNacimiento().isEmpty()) {
-         try {
-            // Intentar parsear como OffsetDateTime primero (ISO 8601 completo)
-            try {
-               OffsetDateTime odt = OffsetDateTime.parse(dto.getFechaNacimiento());
-               patient.setBirthDate(java.sql.Date.valueOf(odt.toLocalDate()));
-            } catch (Exception e) {
-               // Si falla, intentar parsear solo la fecha (YYYY-MM-DD)
-               String fechaSolo = dto.getFechaNacimiento().split("T")[0];
-               patient.setBirthDate(java.sql.Date.valueOf(fechaSolo));
-            }
-         } catch (Exception e) {
-            logger.warn("No se pudo parsear fecha de nacimiento: {}", dto.getFechaNacimiento());
-         }
+      LocalDate fechaNacimiento = parsearFecha(dto.getFechaNacimiento());
+      if (fechaNacimiento != null) {
+         patient.setBirthDateElement(new DateType(fechaNacimiento.toString()));
+      } else if (dto.getFechaNacimiento() != null && !dto.getFechaNacimiento().isBlank()) {
+         logger.warn("No se pudo parsear fecha de nacimiento: {}", dto.getFechaNacimiento());
       }
 
       // Dirección
@@ -235,5 +232,25 @@ public class PatientResourceProvider implements IResourceProvider {
 
       patient.setActive(true);
       return patient;
+   }
+
+   /**
+    * La API Legacy devuelve la fecha como dd-MM-yyyy; se aceptan también formatos ISO
+    */
+   private LocalDate parsearFecha(String valor) {
+      if (valor == null || valor.isBlank()) return null;
+      String fecha = valor.trim();
+      try {
+         return OffsetDateTime.parse(fecha).toLocalDate();
+      } catch (DateTimeParseException ignored) {
+      }
+      String soloFecha = fecha.split("[T ]")[0];
+      for (DateTimeFormatter formato : FORMATOS_FECHA) {
+         try {
+            return LocalDate.parse(soloFecha, formato);
+         } catch (DateTimeParseException ignored) {
+         }
+      }
+      return null;
    }
 }
