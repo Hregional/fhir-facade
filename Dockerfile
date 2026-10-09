@@ -1,5 +1,8 @@
 # Etapa 1: Compilación
 FROM maven:3.8.4-openjdk-17 AS build
+# Opciones de Maven (p. ej. proxy). Vacio = sin proxy.
+ARG MAVEN_OPTS=""
+ENV MAVEN_OPTS=${MAVEN_OPTS}
 WORKDIR /app
 
 # Copiar el pom.xml y descargar dependencias para aprovechar el caché de capas de Docker
