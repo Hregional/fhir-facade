@@ -5,6 +5,7 @@ import io.github.cdimascio.dotenv.Dotenv;
 import javax.net.ssl.*;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -31,6 +32,7 @@ public class config {
          this.tokenManager = new TokenManager();
 
          this.httpClient = HttpClient.newBuilder()
+            .proxy(ProxySelector.getDefault()) // usa -Dhttps.proxyHost si esta definido; si no, conexion directa
             .connectTimeout(Duration.ofSeconds(30))
             .build();
 

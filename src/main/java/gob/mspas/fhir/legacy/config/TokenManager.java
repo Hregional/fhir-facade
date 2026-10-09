@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -33,7 +34,9 @@ public class TokenManager {
         this.username = config.get("USERNAME") != null ? config.get("USERNAME").trim() : null;
         this.password = config.get("PASSWORD") != null ? config.get("PASSWORD").trim() : null;
         this.tokenUrl = config.get("ACCESS_TOKEN_URL") != null ? config.get("ACCESS_TOKEN_URL").trim() : null;
-        this.httpClient = HttpClient.newBuilder().build();
+        this.httpClient = HttpClient.newBuilder()
+                .proxy(ProxySelector.getDefault()) // usa -Dhttps.proxyHost si esta definido; si no, conexion directa
+                .build();
         this.objectMapper = new ObjectMapper();
 
         // Validación de configuración
