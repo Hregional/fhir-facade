@@ -11,8 +11,8 @@ services:
     environment:
       JAVA_OPTS: "${JAVA_OPTS:--Xms256m -Xmx512m -XX:+UseSerialGC}"
     mem_limit: ${MEM_LIMIT:-768m}
-    # Esto permite que el contenedor se comunique con servicios en el localhost de tu máquina
-    # usando la URL: http://host.docker.internal:PUERTO
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     restart: always
+
+networks:
+  hro-net:
+    external: true
