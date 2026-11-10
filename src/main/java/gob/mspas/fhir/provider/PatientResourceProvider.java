@@ -6,7 +6,9 @@ import ca.uhn.fhir.rest.param.DateParam;
 import ca.uhn.fhir.rest.param.StringParam;
 import ca.uhn.fhir.rest.param.TokenParam;
 import ca.uhn.fhir.rest.server.IResourceProvider;
+import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.rest.server.exceptions.InternalErrorException;
+import ca.uhn.fhir.rest.server.exceptions.UnclassifiedServerFailureException;
 import ca.uhn.fhir.rest.server.exceptions.InvalidRequestException;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 
@@ -52,24 +54,34 @@ public class PatientResourceProvider implements IResourceProvider {
    }
 
    /**
-    * Búsqueda por ID (se asocia a noHistoriaClinica)
-    * GET /Patient/{id}
+    * Búsqueda por ID
+    * GET /Patient/{historia}-{codigo}  -> el paciente exacto
+    * GET /Patient/{historia}           -> el paciente si la historia tiene un solo registro;
+    *                                      300 Multiple Choices si tiene varios (usar GET /Patient?_id={historia})
     */
    @Read()
    public Patient getResourceById(@IdParam IdType theId) {
       try {
          String id = theId.getIdPart();
-         logger.info("Búsqueda por ID (Historia Clínica): {}", id);
+         logger.info("Búsqueda por ID: {}", id);
 
-         List<PacienteLegacyDTO> resultados = pacienteService.buscarPorHistoriaClinica(id);
+         List<PacienteLegacyDTO> resultados = buscarPorIdLogico(id);
 
          if (resultados.isEmpty()) {
-            throw new ResourceNotFoundException("No se encontró paciente con Historia Clínica: " + id);
+            throw new ResourceNotFoundException("No se encontró paciente con ID: " + id);
+         }
+         if (resultados.size() > 1) {
+            // El read de FHIR solo admite un recurso: no se elige uno al azar para no devolver a otra persona
+            String ids = resultados.stream().map(this::idLogico).collect(Collectors.joining(", "));
+            logger.warn("Historia Clínica {} tiene {} registros: {}", id, resultados.size(), ids);
+            throw new UnclassifiedServerFailureException(300,
+               "La Historia Clínica " + id + " tiene " + resultados.size() + " pacientes (" + ids
+                  + "). Use GET /Patient?_id=" + id + " para obtenerlos todos, o GET /Patient/{id} con uno de esos IDs");
          }
 
          return convertirAPatient(resultados.get(0));
 
-      } catch (ResourceNotFoundException e) {
+      } catch (BaseServerResponseException e) {
          throw e;
       } catch (Exception e) {
          logger.error("Error en búsqueda por ID", e);
@@ -83,6 +95,8 @@ public class PatientResourceProvider implements IResourceProvider {
     */
    @Search()
    public List<Patient> searchPatients(
+      @Description(shortDefinition = "No. de historia clinica (devuelve todos los pacientes de esa historia) o ID completo {historia}-{codigo}")
+      @OptionalParam(name = "_id") TokenParam idParam,
       @Description(shortDefinition = "CUI (13 digitos, system http://renap.gob.gt/cui) o No. de historia clinica. Tiene prioridad sobre los demas parametros")
       @OptionalParam(name = Patient.SP_IDENTIFIER) TokenParam identifier,
       @Description(shortDefinition = "Fecha de nacimiento YYYY-MM-DD. Se usa si no se envia identifier")
@@ -95,8 +109,12 @@ public class PatientResourceProvider implements IResourceProvider {
       try {
          List<PacienteLegacyDTO> resultados = new ArrayList<>();
 
+         // 0. Búsqueda por _id (Historia Clínica o {historia}-{codigo})
+         if (idParam != null) {
+            resultados = buscarPorIdLogico(idParam.getValue());
+         }
          // 1. Búsqueda por Identifier (CUI o Historia Clínica)
-         if (identifier != null) {
+         else if (identifier != null) {
             String value = identifier.getValue();
             String system = identifier.getSystem();
 
@@ -129,17 +147,39 @@ public class PatientResourceProvider implements IResourceProvider {
 
             resultados = pacienteService.buscarPorNombre(primerNombre, segundoNombre, primerApellido, segundoApellido, null);
          } else {
-            throw new InvalidRequestException("Debe proporcionar al menos un parámetro de búsqueda (identifier, birthdate, family o given)");
+            throw new InvalidRequestException("Debe proporcionar al menos un parámetro de búsqueda (_id, identifier, birthdate, family o given)");
          }
 
          return resultados.stream()
             .map(this::convertirAPatient)
             .collect(Collectors.toList());
 
+      } catch (InvalidRequestException e) {
+         throw e;
       } catch (Exception e) {
          logger.error("Error en búsqueda de pacientes", e);
          throw new InternalErrorException("Error en la consulta: " + e.getMessage());
       }
+   }
+
+   /**
+    * Una historia clínica puede tener varios pacientes en el legacy, así que el ID lógico es
+    * {noHistoriaClinica}-{codigo}. Acepta también solo la historia y devuelve todos sus registros.
+    */
+   private List<PacienteLegacyDTO> buscarPorIdLogico(String id) throws Exception {
+      int guion = id.lastIndexOf('-');
+      if (guion <= 0) {
+         return pacienteService.buscarPorHistoriaClinica(id);
+      }
+      String historia = id.substring(0, guion);
+      String codigo = id.substring(guion + 1);
+      return pacienteService.buscarPorHistoriaClinica(historia).stream()
+         .filter(dto -> String.valueOf(dto.getCodigo()).equals(codigo))
+         .collect(Collectors.toList());
+   }
+
+   private String idLogico(PacienteLegacyDTO dto) {
+      return dto.getNoHistoriaClinica() + "-" + dto.getCodigo();
    }
 
    /**
@@ -148,8 +188,8 @@ public class PatientResourceProvider implements IResourceProvider {
    private Patient convertirAPatient(PacienteLegacyDTO dto) {
       Patient patient = new Patient();
 
-      // ID lógico
-      patient.setId(dto.getNoHistoriaClinica());
+      // ID lógico único: la historia clínica sola se repite entre pacientes
+      patient.setId(idLogico(dto));
 
       // Identificador: Historia Clínica
       patient.addIdentifier()
